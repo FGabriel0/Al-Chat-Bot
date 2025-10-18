@@ -62,8 +62,7 @@ const ChatBotApp = ({ onGoBack, chats, setChats, activeChat, setActiveChat, onNe
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer sk-proj-e6WNQcd3CZUi5G8wCVVKT3BlbkFJ201oWTHY3A3m7mKCsJuK`,
+          
         },
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',
