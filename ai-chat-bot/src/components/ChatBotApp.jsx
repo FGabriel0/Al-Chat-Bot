@@ -32,69 +32,91 @@ const ChatBotApp = ({ onGoBack, chats, setChats, activeChat, setActiveChat, onNe
   }
 
   const sendMessage = async () => {
-    if (inputValue.trim() === '') return
+  if (inputValue.trim() === '') return
 
-    const newMessage = {
-      type: 'prompt',
-      text: inputValue,
+  const newMessage = {
+    type: 'prompt',
+    text: inputValue,
+    timestamp: new Date().toLocaleTimeString(),
+  }
+
+  if (!activeChat) {
+    onNewChat(inputValue)
+    setInputValue('')
+  } else {
+    const updatedMessages = [...messages, newMessage]
+    setMessages(updatedMessages)
+    localStorage.setItem(activeChat, JSON.stringify(updatedMessages))
+    setInputValue('')
+
+    const updatedChats = chats.map((chat) => {
+      if (chat.id === activeChat) {
+        return { ...chat, messages: updatedMessages }
+      }
+      return chat
+    })
+    setChats(updatedChats)
+    localStorage.setItem('chats', JSON.stringify(updatedChats))
+    setIsTyping(true)
+
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY
+
+  try {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: inputValue }],
+      max_tokens: 500,
+    }),
+  })
+
+  if (!response.ok) {
+    console.error('OpenAI API error', await response.text())
+    setIsTyping(false)
+    return
+  }
+
+  const data = await response.json()
+
+  if (!data.choices || data.choices.length === 0) {
+    console.error('No response from OpenAI API:', data)
+    setIsTyping(false)
+    return
+  }
+
+  const chatResponse = data.choices[0].message.content.trim()
+  // ... restante do código
+} catch (error) {
+  console.error('Fetch error:', error)
+  setIsTyping(false)
+}
+
+    const newResponse = {
+      type: 'response',
+      text: chatResponse,
       timestamp: new Date().toLocaleTimeString(),
     }
 
-    if (!activeChat) {
-      onNewChat(inputValue)
-      setInputValue('')
-    } else {
-      const updatedMessages = [...messages, newMessage]
-      setMessages(updatedMessages)
-      localStorage.setItem(activeChat, JSON.stringify(updatedMessages))
-      setInputValue('')
+    const updatedMessagesWithResponse = [...updatedMessages, newResponse]
+    setMessages(updatedMessagesWithResponse)
+    localStorage.setItem(activeChat, JSON.stringify(updatedMessagesWithResponse))
+    setIsTyping(false)
 
-      const updatedChats = chats.map((chat) => {
-        if (chat.id === activeChat) {
-          return { ...chat, messages: updatedMessages }
-        }
-        return chat
-      })
-      setChats(updatedChats)
-      localStorage.setItem('chats', JSON.stringify(updatedChats))
-      setIsTyping(true)
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: inputValue }],
-          max_tokens: 500,
-        }),
-      })
-
-      const data = await response.json()
-      const chatResponse = data.choices[0].message.content.trim()
-
-      const newResponse = {
-        type: 'response',
-        text: chatResponse,
-        timestamp: new Date().toLocaleTimeString(),
+    const updatedChatsWithResponse = chats.map((chat) => {
+      if (chat.id === activeChat) {
+        return { ...chat, messages: updatedMessagesWithResponse }
       }
-
-      const updatedMessagesWithResponse = [...updatedMessages, newResponse]
-      setMessages(updatedMessagesWithResponse)
-      localStorage.setItem(activeChat, JSON.stringify(updatedMessagesWithResponse))
-      setIsTyping(false)
-
-      const updatedChatsWithResponse = chats.map((chat) => {
-        if (chat.id === activeChat) {
-          return { ...chat, messages: updatedMessagesWithResponse }
-        }
-        return chat
-      })
-      setChats(updatedChatsWithResponse)
-      localStorage.setItem('chats', JSON.stringify(updatedChatsWithResponse))
-    }
+      return chat
+    })
+    setChats(updatedChatsWithResponse)
+    localStorage.setItem('chats', JSON.stringify(updatedChatsWithResponse))
   }
+}
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
